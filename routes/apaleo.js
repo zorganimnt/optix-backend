@@ -11,5 +11,6 @@ router.get('/app/user/includedService', apaleoController.getIncluded);
 router.put('/app/user/charges', apaleoController.makeCharges);
 router.get('/app/user/info', apaleoController.getBfInfo);
 router.get('/app/user/total', apaleoController.getTotalBf);
+router.get('/app/total-bf-periode', apaleoController.getTotalBFInformation);
 
 module.exports = router;

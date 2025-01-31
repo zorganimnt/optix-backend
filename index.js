@@ -84,6 +84,6 @@ app.use('/staff/v0', staffRoutes);
 app.use('/apaleo/v0', apaleoRoutes);
 
 // SERVER CONFIG
-app.listen(80, () => {
+app.listen(3000, () => {
     console.log(`HTTP Server is running on port ${PORT}`);
 });

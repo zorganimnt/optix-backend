@@ -469,13 +469,16 @@ const getBfInfo = async (req, res) => {
         // Calculate total breakfast quantity and prepare customer data
         const totalBreakfastQuantity = filteredServices.reduce((total, item) => total + item.count, 0);
         const customerName = `${filteredServices[0].guest.firstName} ${filteredServices[0].guest.lastName}`;
-
+        const bfType = filteredServices[0].code;
+        const bfName = filteredServices[0].name;
         // Return processed data
         res.status(200).json({
             roomNumber: roomNumber,
             totalBreakfastQuantity: totalBreakfastQuantity,
             customerName: customerName,
-            breakfastIncluded: true
+            breakfastIncluded: true,
+            bfType : bfType,
+            bfName: bfName
         });
     } catch (error) {
         console.error("Error fetching breakfast information:", error.response?.data || error.message);
@@ -529,9 +532,63 @@ const getTotalBf = async (req, res) => {
     }
 };
 
+const getTotalBFInformation = async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Please provide both startDate and endDate in the query parameters." });
+    }
+
+    try {
+        const token = await getToken(); // Ensure getToken() is defined/imported
+
+        const apiUrl = "https://api.apaleo.com/reports/v1/reports/ordered-services";
+        const params = {
+            propertyId: "21201",
+            serviceIds: "21201-BRK,21201-BRKEXTRA", // Assuming these IDs represent included and extra breakfasts
+            from: startDate,
+            to: endDate,
+        };
+
+        const response = await axios.get(apiUrl, {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
+            params,
+        });
+
+        if (!response.data || !response.data.orderedServices || response.data.orderedServices.length === 0) {
+            return res.status(404).json({ message: "No breakfast orders found for the selected date range." });
+        }
+
+        // Separate counts for included and extra breakfasts
+        let totalIncludedBf = 0;
+        let totalExtraBf = 0;
+
+        response.data.orderedServices.forEach(service => {
+            if (service.id === "21201-BRK") {
+                totalIncludedBf += service.count;
+            } else if (service.id === "21201-BRKEXTRA") {
+                totalExtraBf += service.count;
+            }
+        });
+
+        // Return the results
+        res.status(200).json({
+            totalIncludedBf,
+            totalExtraBf,
+            totalBreakfastQuantity: totalIncludedBf + totalExtraBf,
+        });
+    } catch (error) {
+        console.error("Error fetching breakfast information:", error.response?.data || error.message);
+        res.status(error.response?.status || 500).send({ message: error.response?.data || "Internal Server Error" });
+    }
+};
+
 
 
 module.exports = {
-   getUser, getService, getAllUsers, getIncluded, makeCharges, getBfInfo, getTotalBf
+   getUser, getService, getAllUsers, getIncluded, makeCharges, getBfInfo, getTotalBf, getTotalBFInformation
 };
 
