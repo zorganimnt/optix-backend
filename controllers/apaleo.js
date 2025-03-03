@@ -105,7 +105,6 @@ const getUser = async (req, res) => {
 
 const getIncluded = async (req, res) => {
     const roomNumber = req.query.roomNumber;
-
     if (!roomNumber) {
         return res.status(400).send({ error: "Room number is missing" });
     }
@@ -211,10 +210,10 @@ const getIncluded = async (req, res) => {
         return res.status(error.response?.status || 500).send(error.response?.data || "Internal Server Error");
     }
 };
-const postChargeToFolio = async (folioId, token, qtBreakfast, amount) => {
+const postChargeToFolio = async (folioId, token, qtBreakfast, amount, extrasOrder) => {
     const apiUrlFolioActions = `https://api.apaleo.com/finance/v1/folio-actions/${folioId}/charges`;
 
-    const chargeData = {
+    const chargeBfData = {
         serviceType: "FoodAndBeverages",
         vatType: "Normal",
         serviceId: "21201-BRK",
@@ -225,9 +224,19 @@ const postChargeToFolio = async (folioId, token, qtBreakfast, amount) => {
         },
         quantity: qtBreakfast,
     };
+    const chargeExtrasData = {
+        serviceType: "Other",
+        vatType: "Normal",
+        name: "Extras",
+        amount: {
+            amount: amount,
+            currency: "EUR",
+        },
+        quantity: qtBreakfast,
+    };
 
     // Perform the PUT request
-    const response = await axios.post(apiUrlFolioActions, chargeData, {
+    const response = await axios.post(apiUrlFolioActions, extrasOrder ? chargeExtrasData : chargeBfData, {
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`,
@@ -239,7 +248,7 @@ const postChargeToFolio = async (folioId, token, qtBreakfast, amount) => {
 
 const makeCharges = async (req, res) => {
     const roomNumber = req.query.roomNumber;
-    const { qtBreakfast, amount } = req.body;
+    const { qtBreakfast, amount, extrasOrder } = req.body;
 
     if (!roomNumber || !qtBreakfast || !amount) {
         return res.status(400).json({ error: "Missing roomNumber, qtBreakfast, or amount" });
@@ -301,7 +310,7 @@ const makeCharges = async (req, res) => {
         const folioId = folios[0].id; // Assuming the first folio is the one to use
 
         // Step 4: Post the breakfast charge to the folio
-        await postChargeToFolio(folioId, token, qtBreakfast, amount);
+        await postChargeToFolio(folioId, token, qtBreakfast, amount, extrasOrder);
 
         // Step 5: Return success response
         return res.status(200).json({
@@ -477,7 +486,7 @@ const getBfInfo = async (req, res) => {
             totalBreakfastQuantity: totalBreakfastQuantity,
             customerName: customerName,
             breakfastIncluded: true,
-            bfType : bfType,
+            bfType: bfType,
             bfName: bfName
         });
     } catch (error) {
@@ -589,6 +598,6 @@ const getTotalBFInformation = async (req, res) => {
 
 
 module.exports = {
-   getUser, getService, getAllUsers, getIncluded, makeCharges, getBfInfo, getTotalBf, getTotalBFInformation
+    getUser, getService, getAllUsers, getIncluded, makeCharges, getBfInfo, getTotalBf, getTotalBFInformation
 };
 
